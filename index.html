@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WORLD EXPLORER — Interactive 3D Globe &amp; Landmark Discovery</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ========================================================================
+       Loading Overlay Screen
+       ======================================================================== -->
+  <div id="loading-screen" role="status" aria-live="polite">
+    <div class="loader-globe-ring">
+      <span class="loader-core-icon" aria-hidden="true">🌍</span>
+    </div>
+    <h1 class="loader-title">WORLD EXPLORER</h1>
+    <p id="loader-status-text" class="loader-status">
+      Initializing 3D Earth &amp; Geographic Boundaries...
+    </p>
+    <div class="loader-progress-track">
+      <div id="loader-progress-bar" class="loader-progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       Main Application Viewport
+       ======================================================================== -->
+  <div id="app-container">
+    <!-- 3D Three.js Canvas Mount Point -->
+    <div
+      id="globe-canvas-container"
+      aria-label="Interactive 3D Earth Globe"
+    ></div>
+    <div class="viewport-vignette"></div>
+
+    <!-- ======================================================================
+         Top Navigation Bar
+         ====================================================================== -->
+    <header class="top-navbar">
+      <div class="brand-group">
+        <div class="brand-logo" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path
+              d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+            ></path>
+          </svg>
+        </div>
+        <div class="brand-text-wrap">
+          <span class="brand-title">WORLD EXPLORER</span>
+          <span class="brand-subtitle">3D Geographic &amp; Landmark Atlas</span>
+        </div>
+      </div>
+
+      <!-- Country Search Box with Autocomplete -->
+      <div class="search-wrapper">
+        <div class="search-input-box">
+          <svg
+            class="search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            id="country-search-input"
+            placeholder="Search any country or capital (e.g., Philippines, Japan, Italy)..."
+            autocomplete="off"
+            aria-label="Search for a country"
+          />
+          <button
+            type="button"
+            id="search-clear-btn"
+            class="search-clear-btn"
+            title="Clear search"
+            aria-label="Clear search"
+          >
+            &times;
+          </button>
+        </div>
+        <div
+          id="search-results-dropdown"
+          class="search-results-dropdown"
+          role="listbox"
+        ></div>
+      </div>
+
+      <!-- Navigation Action Controls & Exploration Statistics -->
+      <div class="nav-actions">
+        <div class="stat-pill" title="Number of countries explored in this session">
+          <span>Explored:</span>
+          <strong id="explored-count-value">0</strong>
+          <span>/ 28 Featured</span>
+        </div>
+
+        <button
+          type="button"
+          id="random-country-btn"
+          class="nav-btn primary-action"
+          title="Fly to a random featured country"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="16 3 21 3 21 8"></polyline>
+            <line x1="4" y1="20" x2="21" y2="3"></line>
+            <polyline points="21 16 21 21 16 21"></polyline>
+            <line x1="15" y1="15" x2="21" y2="21"></line>
+            <line x1="4" y1="4" x2="9" y2="9"></line>
+          </svg>
+          <span>Discover Random Country</span>
+        </button>
+
+        <button
+          type="button"
+          id="toggle-borders-btn"
+          class="nav-btn active-toggle"
+          title="Toggle country boundary lines"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+            <line x1="8" y1="2" x2="8" y2="18"></line>
+            <line x1="16" y1="6" x2="16" y2="22"></line>
+          </svg>
+          <span>Borders</span>
+        </button>
+
+        <button
+          type="button"
+          id="toggle-rotate-btn"
+          class="nav-btn active-toggle"
+          title="Toggle automatic globe rotation"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
+          </svg>
+          <span>Auto-Spin</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ======================================================================
+         Popular Destinations Quick-Access Rail (Left Side)
+         ====================================================================== -->
+    <aside id="popular-strip" class="popular-strip" aria-label="Popular Destinations">
+      <div class="popular-header">
+        <span class="popular-title">✨ Popular Destinations</span>
+        <button
+          type="button"
+          id="popular-toggle-btn"
+          class="popular-toggle-btn"
+        >
+          Hide
+        </button>
+      </div>
+      <div id="popular-destinations-list" class="popular-list"></div>
+    </aside>
+
+    <!-- ======================================================================
+         Floating Country Information Panel (Right Side)
+         ====================================================================== -->
+    <aside
+      id="country-info-panel"
+      class="country-panel"
+      aria-label="Selected Country Information"
+    >
+      <div class="panel-header">
+        <button
+          type="button"
+          id="panel-close-btn"
+          class="panel-close-btn"
+          title="Close country panel"
+          aria-label="Close country panel"
+        >
+          &times;
+        </button>
+
+        <div class="country-identity">
+          <div id="panel-country-flag" class="country-flag-display">🇵🇭</div>
+          <div class="country-title-group">
+            <span id="panel-country-region" class="country-region-tag">
+              Southeast Asia
+            </span>
+            <h2 id="panel-country-name" class="country-name-heading">
+              Philippines
+            </h2>
+          </div>
+        </div>
+
+        <div class="country-meta-grid">
+          <div class="meta-stat-box">
+            <div class="meta-stat-label">Capital</div>
+            <div id="panel-country-capital" class="meta-stat-value">Manila</div>
+          </div>
+          <div class="meta-stat-box">
+            <div class="meta-stat-label">Population</div>
+            <div id="panel-country-population" class="meta-stat-value">
+              117.3M
+            </div>
+          </div>
+          <div class="meta-stat-box">
+            <div class="meta-stat-label">Currency</div>
+            <div id="panel-country-currency" class="meta-stat-value">
+              PHP (₱)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-scroll-body">
+        <p id="panel-country-description" class="country-description"></p>
+
+        <div class="landmarks-section-header">
+          <span class="landmarks-section-title">
+            Top 5 Famous Landmarks
+          </span>
+          <span class="landmarks-section-subtitle">
+            Click card to inspect
+          </span>
+        </div>
+
+        <div id="panel-landmarks-list" class="landmarks-list"></div>
+      </div>
+    </aside>
+
+    <!-- ======================================================================
+         Bottom HUD Bar (Instructions + Zoom & Reset Globe Controls)
+         ====================================================================== -->
+    <footer class="bottom-hud">
+      <span class="instruction-label">
+        Drag to rotate · Scroll to zoom · Click a country to explore.
+      </span>
+      <div class="hud-divider"></div>
+      <div class="hud-controls-group">
+        <button
+          type="button"
+          id="zoom-in-btn"
+          class="hud-icon-btn"
+          title="Zoom in"
+          aria-label="Zoom in"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          id="zoom-out-btn"
+          class="hud-icon-btn"
+          title="Zoom out"
+          aria-label="Zoom out"
+        >
+          &minus;
+        </button>
+        <button
+          type="button"
+          id="reset-globe-btn"
+          class="reset-globe-btn"
+          title="Return to full-globe view"
+        >
+          Reset Globe
+        </button>
+      </div>
+    </footer>
+
+    <!-- ======================================================================
+         Dynamic Pointer Hover Tooltip
+         ====================================================================== -->
+    <div id="globe-tooltip" role="tooltip">
+      <span id="tooltip-flag" class="tooltip-flag">🌍</span>
+      <div class="tooltip-text-group">
+        <span id="tooltip-title" class="tooltip-title">Country</span>
+        <span id="tooltip-subtitle" class="tooltip-subtitle">
+          Click to explore
+        </span>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         Landmark Detailed View Modal
+         ====================================================================== -->
+    <div
+      id="landmark-modal-backdrop"
+      class="landmark-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-landmark-title"
+    >
+      <div class="landmark-modal-card">
+        <div class="modal-hero-wrap">
+          <img
+            id="modal-hero-img"
+            class="modal-hero-img"
+            src=""
+            alt="Landmark preview"
+          />
+          <div class="modal-hero-overlay"></div>
+          <button
+            type="button"
+            id="modal-close-btn"
+            class="modal-close-btn"
+            aria-label="Close landmark details"
+          >
+            &times;
+          </button>
+          <div class="modal-hero-caption">
+            <span id="modal-category-pill" class="modal-category-pill">
+              UNESCO Heritage
+            </span>
+            <h3 id="modal-landmark-title" class="modal-landmark-title">
+              Landmark Name
+            </h3>
+            <div id="modal-landmark-location" class="modal-landmark-location">
+              City, Country
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-content-body">
+          <div class="modal-stats-row">
+            <div class="modal-stat-item">
+              <div class="modal-stat-label">History / Era</div>
+              <div id="modal-stat-era" class="modal-stat-val">—</div>
+            </div>
+            <div class="modal-stat-item">
+              <div class="modal-stat-label">Annual Visitors</div>
+              <div id="modal-stat-visitors" class="modal-stat-val">—</div>
+            </div>
+            <div class="modal-stat-item">
+              <div class="modal-stat-label">Coordinates</div>
+              <div id="modal-stat-coords" class="modal-stat-val">—</div>
+            </div>
+          </div>
+
+          <p id="modal-full-description" class="modal-full-description"></p>
+
+          <div class="modal-actions-footer">
+            <button type="button" id="modal-fly-btn" class="modal-fly-btn">
+              🎯 Focus Globe Camera on This Landmark
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       External CDN Dependencies (Three.js r128 + OrbitControls)
+       ======================================================================== -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Main Application Logic -->
+  <script src="script.js"></script>
+</body>
+</html>
